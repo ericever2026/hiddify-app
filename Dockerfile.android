@@ -1,0 +1,39 @@
+# Android Build Dockerfile for Hiddify
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    unzip \
+    xz-utils \
+    zip \
+    openjdk-17-jdk \
+    && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/flutter/flutter.git -b stable /opt/flutter
+
+ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:${PATH}"
+ENV FLUTTER_ROOT=/opt/flutter
+
+RUN flutter config --no-analytics && \
+    flutter precache --android
+
+WORKDIR /app
+
+COPY . /app
+
+RUN flutter pub get && \
+    dart run build_runner build --delete-conflicting-outputs
+
+RUN mkdir -p /app/android/app/libs && \
+    curl -L https://github.com/hiddify/hiddify-next-core/releases/download/v4.0.4/hiddify-core-android.tar.gz | tar xz -C /app/android/app/libs/
+
+RUN dart pub global activate fastforge
+
+ENV SENTRY_DSN=
+
+CMD ["bash", "-c", "fastforge package --platform android --targets apk --skip-clean --build-target=lib/main_prod.dart --build-target-platform=android-arm,android-arm64,android-x64 --build-dart-define=sentry_dsn= && ls -R /app/build/app/outputs"]
