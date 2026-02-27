@@ -50,6 +50,10 @@ jobs:
           make android-install-deps
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
 
+      - name: Prepare Android build
+        run: |
+          make android-prepare
+
       - name: Build APK
         run: |
           make android-apk-release
